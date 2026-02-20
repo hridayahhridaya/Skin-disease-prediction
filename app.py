@@ -1,35 +1,36 @@
 import streamlit as st
-import tensorflow as tf
+import pickle
 import numpy as np
-from PIL import Image
 
-# Load model
-model = tf.keras.models.load_model("skin_disease_model.h5")
+# Load model and encoder
+model = pickle.load(open("skin_disease_model.pkl", "rb"))
+label_encoder = pickle.load(open("label_encoder.pkl", "rb"))
 
-# Class names (same order used during training)
-class_names = ['eczema', 'melanoma', 'psoriasis']
+st.set_page_config(page_title="Skin Disease Predictor")
 
-st.title("🧴 Skin Disease Detector")
-st.write("Upload a skin image to detect disease")
+st.title("🧴 Skin Disease Prediction System")
+st.write("Enter patient details below:")
 
-# Upload image
-uploaded_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
+# -------------------
+# User Inputs
+# -------------------
 
-if uploaded_file is not None:
-    image = Image.open(uploaded_file)
-    st.image(image, caption="Uploaded Image", use_column_width=True)
+age = st.number_input("Age", min_value=1, max_value=100, value=25)
+itching = st.slider("Itching Level (0-10)", 0, 10, 5)
+redness = st.slider("Redness Level (0-10)", 0, 10, 5)
+swelling = st.slider("Swelling Level (0-10)", 0, 10, 5)
+duration = st.number_input("Duration (Days)", min_value=1, max_value=60, value=10)
 
-    # Preprocess image
-    img = image.resize((224,224))
-    img_array = np.array(img)/255.0
-    img_array = np.expand_dims(img_array, axis=0)
+# -------------------
+# Prediction
+# -------------------
 
-    # Prediction
-    prediction = model.predict(img_array)
-    predicted_class = class_names[np.argmax(prediction)]
-    confidence = np.max(prediction)
+if st.button("Predict Disease"):
 
-    st.subheader("Prediction Result:")
-    st.success(f"Disease: {predicted_class}")
-    st.info(f"Confidence: {confidence:.2f}")
-  
+    input_data = np.array([[age, itching, redness, swelling, duration]])
+
+    prediction = model.predict(input_data)
+    predicted_label = label_encoder.inverse_transform(prediction)
+
+    st.subheader("Prediction Result")
+    st.success(f"Predicted Disease: {predicted_label[0]}")
